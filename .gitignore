@@ -4,3 +4,7 @@ USBSIE/SIE01.cydsn/Export
 USBSIE/SIE01.cydsn/Generated_Source
 *.txt
 *.Tim
+*.rpt
+*.html
+*.svd
+*.cycdx

@@ -18,13 +18,28 @@ volatile uint32 dat_idx;
 uint32 dat[BUFFER_SIZE];
 uint32 dat2[BUFFER_SIZE];
 uint32 dat3[BUFFER_SIZE];
+uint32 dat32[BUFFER_SIZE];
+uint32 dat32A[BUFFER_SIZE];
+uint32 dat32B[BUFFER_SIZE];
+uint16 dat16A[BUFFER_SIZE];
+uint16 dat16B[BUFFER_SIZE];
+uint16 _dat16;
 uint8 _dat_status;
 uint8 dat8[BUFFER_SIZE];
+uint8 dat8A[BUFFER_SIZE];
+uint8 dat8B[BUFFER_SIZE];
 uint32 _dat;
+uint32 _dat32;
 uint8 _dat8;
 
 void setup_DMA1(void);
 void setup_DMA2(void);
+
+void setup_DMA3(void);
+void setup_DMA4(void);
+void setup_DMA5(void);
+
+void setup_DMA_SR1(void);
 
 void _isr_1_Interrupt_InterruptCallback(void)
 {
@@ -233,6 +248,101 @@ void shift_dma_sim(void)
     }
 }
  
+void shift_dma_sim2(void)
+{
+    char str[64];
+    uint16 i=0;
+    uint16 _tmp1, _tmp2;
+    
+    for( i=0; i<BUFFER_SIZE; i++) dat32[i]=i;
+    
+    UART_1_PutString("\n----- Start ShiftReg Simulation 16bit ------\n");
+
+    CyDelay(2000);
+
+    //DMA_3_DmaRelease();
+    //DMA_4_DmaRelease();
+    //DMA_5_DmaRelease();
+    
+    while(1)
+    {
+    
+          for( i=0; i<BUFFER_SIZE; i++)
+        {   
+            sprintf( str, "~:dat16[%2d] - %04x:%04x\n", i, dat16A[i], dat16B[i]);
+            
+            //sprintf( str, "~:dat32[%2d] - %08lx\n", i, dat32[i]);
+            UART_1_PutString(str);
+            CyDelay(500);                  
+        }
+        
+        CyDelay(2000);
+        
+//        UART_1_PutString("------------------\n");
+//        for( i=0; i<BUFFER_SIZE; i++)
+//        { 
+//            _tmp1 = ShiftReg_1_ReadRegValue();
+//            _tmp2 = ShiftReg_4_ReadRegValue();
+//            sprintf( str, "REG:%04x:%04x\n", _tmp1, _tmp2);
+//            UART_1_PutString(str);
+//            CyDelay(500);
+//        }
+    
+    }
+}
+
+
+void shift_dma_sim3(void)
+{
+    char str[64];
+    uint16 i=0;
+    uint16 _tmp1, _tmp2;
+    
+    for( i=0; i<BUFFER_SIZE; i++) dat32A[i]=i;
+    
+    UART_1_PutString("\n----- Start ShiftReg Simulation 32bit ------\n");
+    CyDelay(500);
+
+    sprintf(str, "reg1/2/3/4:%04x/%04x/%04x/%04x\n",
+          LO16((uint32)Status_Reg_1_Status_PTR),LO16((uint32)Status_Reg_2_Status_PTR),
+          LO16((uint32)Status_Reg_3_Status_PTR),LO16((uint32)Status_Reg_4_Status_PTR));
+    
+    UART_1_PutString(str);
+    CyDelay(2000);
+
+    //DMA_3_DmaRelease();
+    //DMA_4_DmaRelease();
+    //DMA_5_DmaRelease();
+    
+    DMA_SR1_DmaRelease();
+    
+    while(1)
+    {
+    
+          for( i=0; i<BUFFER_SIZE; i++)
+        {   
+            //sprintf( str, "~:dat8[%2d] - %04x\n", i, dat8[i]);
+            //sprintf( str, "~:dat16[%2d] - %04x\n", i, dat16A[i]);
+            
+            sprintf( str, "~:dat32[%2d] - %08lx\n", i, dat32A[i]);
+            UART_1_PutString(str);
+            CyDelay(500);                  
+        }
+        
+        CyDelay(2000);
+        
+//        UART_1_PutString("------------------\n");
+//        for( i=0; i<BUFFER_SIZE; i++)
+//        { 
+//            _tmp1 = ShiftReg_1_ReadRegValue();
+//            _tmp2 = ShiftReg_4_ReadRegValue();
+//            sprintf( str, "REG:%04x:%04x\n", _tmp1, _tmp2);
+//            UART_1_PutString(str);
+//            CyDelay(500);
+//        }
+    
+    }
+}
 
 int main()
 {
@@ -244,8 +354,14 @@ int main()
     
     char str[64];
     
-    setup_DMA1();
-    setup_DMA2();
+//    setup_DMA1();
+//    setup_DMA2();
+//    setup_DMA3();
+//    setup_DMA4();
+//    setup_DMA5();
+    
+    setup_DMA_SR1();
+    
     
     CyGlobalIntEnable; /* Enable global interrupts. */
 
@@ -258,7 +374,7 @@ int main()
     ShiftReg_1_Start();
     //Counter_1_Start();
     ShiftReg_2_Start();
-    ShiftReg_3_Start();
+    //ShiftReg_3_Start();
     ShiftReg_4_Start();
     
     CyDelay(500u); 
@@ -269,6 +385,10 @@ int main()
 //    isr_2_Start();
     ResetIn_Write(0u);
    
+    shift_dma_sim3();
+    
+    shift_dma_sim2();
+    
     shift_dma_sim();
     
     shift_sim();
@@ -334,6 +454,7 @@ void setup_DMA1()
 
 }
 
+// Clear Interrupt Flag by Reading Interrupt Status Register
 void setup_DMA2()
 {
 
@@ -359,5 +480,125 @@ void setup_DMA2()
     
 }
 
+//Clear Interrupt Flag
+void setup_DMA3()
+{
+/* Defines for DMA_3 */
+#define DMA_3_BYTES_PER_BURST 1
+#define DMA_3_REQUEST_PER_BURST 1
+#define DMA_3_SRC_BASE (CYDEV_PERIPH_BASE)
+#define DMA_3_DST_BASE (CYREG_SRAM_DATA_MBASE)
+
+    /* Variable declarations for DMA_3 */
+    /* Move these variable declarations to the top of the function */
+    uint8 DMA_3_Chan;
+    uint8 DMA_3_TD[1];
+
+    /* DMA Configuration for DMA_3 */
+    DMA_3_Chan = DMA_3_DmaInitialize(DMA_3_BYTES_PER_BURST, DMA_3_REQUEST_PER_BURST, 
+        HI16(DMA_3_SRC_BASE), HI16(DMA_3_DST_BASE));
+    DMA_3_TD[0] = CyDmaTdAllocate();
+    CyDmaTdSetConfiguration(DMA_3_TD[0], 1, DMA_3_TD[0], DMA_3__TD_TERMOUT_EN);
+    CyDmaTdSetAddress(DMA_3_TD[0], LO16((uint32)ShiftReg_1_SR_STATUS_PTR), LO16((uint32)(&_dat_status)));
+    CyDmaChSetInitialTd(DMA_3_Chan, DMA_3_TD[0]);
+    CyDmaChEnable(DMA_3_Chan, 1);  
+    
+}
+
+//Read 16bit Data
+void setup_DMA4()
+{
+    /* Defines for DMA_4 */
+#define DMA_4_BYTES_PER_BURST 2
+#define DMA_4_REQUEST_PER_BURST 1
+#define DMA_4_SRC_BASE (CYDEV_PERIPH_BASE)
+#define DMA_4_DST_BASE (CYREG_SRAM_DATA_MBASE)
+
+    /* Variable declarations for DMA_4 */
+    /* Move these variable declarations to the top of the function */
+    uint8 DMA_4_Chan;
+    uint8 DMA_4_TD[1];
+
+    /* DMA Configuration for DMA_1 */
+    DMA_4_Chan = DMA_4_DmaInitialize(DMA_4_BYTES_PER_BURST, DMA_4_REQUEST_PER_BURST, 
+        HI16(DMA_4_SRC_BASE), HI16(DMA_4_DST_BASE));
+    DMA_4_TD[0] = CyDmaTdAllocate();
+    CyDmaTdSetConfiguration(DMA_4_TD[0], 32, DMA_4_TD[0],  TD_INC_DST_ADR);
+    CyDmaTdSetAddress(DMA_4_TD[0], LO16((uint32)ShiftReg_1_OUT_FIFO_VAL_LSB_PTR), LO16((uint32)dat16B));
+    //CyDmaTdSetAddress(DMA_4_TD[0], LO16((uint32)ShiftReg_1_SHIFT_REG_CAPTURE_PTR), LO16((uint32)dat16B));
+    CyDmaChSetInitialTd(DMA_4_Chan, DMA_4_TD[0]);
+    CyDmaChEnable(DMA_4_Chan, 1);
+
+}
+
+//Read 16bit Data
+void setup_DMA5()
+{
+    /* Defines for DMA_5 */
+#define DMA_5_BYTES_PER_BURST 2
+#define DMA_5_REQUEST_PER_BURST 1
+#define DMA_5_SRC_BASE (CYDEV_PERIPH_BASE)
+#define DMA_5_DST_BASE (CYREG_SRAM_DATA_MBASE)
+
+    /* Variable declarations for DMA_5 */
+    /* Move these variable declarations to the top of the function */
+    uint8 DMA_5_Chan;
+    uint8 DMA_5_TD[1];
+
+    /* DMA Configuration for DMA_5 */
+    DMA_5_Chan = DMA_5_DmaInitialize(DMA_5_BYTES_PER_BURST, DMA_5_REQUEST_PER_BURST, 
+        HI16(DMA_5_SRC_BASE), HI16(DMA_5_DST_BASE));
+    DMA_5_TD[0] = CyDmaTdAllocate();
+    CyDmaTdSetConfiguration(DMA_5_TD[0], 32, DMA_5_TD[0], TD_INC_DST_ADR);
+    CyDmaTdSetAddress(DMA_5_TD[0], LO16((uint32)ShiftReg_4_OUT_FIFO_VAL_LSB_PTR), LO16((uint32)dat16A));
+    //CyDmaTdSetAddress(DMA_5_TD[0], LO16((uint32)ShiftReg_4_SHIFT_REG_CAPTURE_PTR), LO16((uint32)dat16A));
+    CyDmaChSetInitialTd(DMA_5_Chan, DMA_5_TD[0]);
+    CyDmaChEnable(DMA_5_Chan, 1);
+
+}
+
+void setup_DMA_SR1()
+{
+    /* Defines for DMA_SR1 */
+#define DMA_SR1_BYTES_PER_BURST 1
+#define DMA_SR1_REQUEST_PER_BURST 0
+#define DMA_SR1_SRC_BASE (CYDEV_PERIPH_BASE)
+#define DMA_SR1_DST_BASE (CYREG_SRAM_DATA_MBASE)
+
+    /* Variable declarations for DMA_SR1 */
+    /* Move these variable declarations to the top of the function */
+    uint8 DMA_SR1_Chan;
+    uint8 DMA_SR1_TD[1];
+
+    /* Variable declarations for DMA_SR2 */
+    /* Move these variable declarations to the top of the function */
+    uint8 DMA_SR2_Chan;
+    uint8 DMA_SR2_TD[1];
+
+    /* DMA Configuration for DMA_SR1 */
+    DMA_SR1_Chan = DMA_SR1_DmaInitialize(DMA_SR1_BYTES_PER_BURST, DMA_SR1_REQUEST_PER_BURST, 
+        HI16(DMA_SR1_SRC_BASE), HI16(DMA_SR1_DST_BASE));
+    DMA_SR1_TD[0] = CyDmaTdAllocate();
+    CyDmaTdSetConfiguration(DMA_SR1_TD[0], 4, DMA_SR1_TD[0], DMA_SR1__TD_TERMOUT_EN | TD_INC_SRC_ADR | TD_INC_DST_ADR);
+    CyDmaTdSetAddress(DMA_SR1_TD[0], LO16((uint32)Status_Reg_1_Status_PTR), LO16((uint32)&_dat32));
+    CyDmaChSetInitialTd(DMA_SR1_Chan, DMA_SR1_TD[0]);
+    CyDmaChEnable(DMA_SR1_Chan, 1);
+    
+    /* Defines for DMA_SR2 */
+#define DMA_SR2_BYTES_PER_BURST 4
+#define DMA_SR2_REQUEST_PER_BURST 1
+#define DMA_SR2_SRC_BASE (CYDEV_SRAM_BASE)
+#define DMA_SR2_DST_BASE (CYDEV_SRAM_BASE)
+
+    /* DMA Configuration for DMA_SR2 */
+    DMA_SR2_Chan = DMA_SR2_DmaInitialize(DMA_SR2_BYTES_PER_BURST, DMA_SR2_REQUEST_PER_BURST, 
+        HI16(DMA_SR2_SRC_BASE), HI16(DMA_SR2_DST_BASE));
+    DMA_SR2_TD[0] = CyDmaTdAllocate();
+    CyDmaTdSetConfiguration(DMA_SR2_TD[0], BUFFER_SIZE<<2u, DMA_SR2_TD[0], TD_INC_DST_ADR);
+    CyDmaTdSetAddress(DMA_SR2_TD[0], LO16((uint32)&_dat32), LO16((uint32)dat32A));
+    CyDmaChSetInitialTd(DMA_SR2_Chan, DMA_SR2_TD[0]);
+    CyDmaChEnable(DMA_SR2_Chan, 1);
+
+}
 
 /* [] END OF FILE */
