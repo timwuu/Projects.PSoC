@@ -19,8 +19,8 @@ uint32 dat[BUFFER_SIZE];
 uint32 dat2[BUFFER_SIZE];
 uint32 dat3[BUFFER_SIZE];
 uint32 dat32[BUFFER_SIZE];
-uint32 dat32A[BUFFER_SIZE];
-uint32 dat32B[BUFFER_SIZE];
+uint32 dat32A[BUFFER_SIZE] __attribute__ ((section(".ram2")));
+uint32 dat32B[BUFFER_SIZE] __attribute__ ((section(".ram2")));
 uint16 dat16A[BUFFER_SIZE];
 uint16 dat16B[BUFFER_SIZE];
 uint16 _dat16;
@@ -29,7 +29,7 @@ uint8 dat8[BUFFER_SIZE];
 uint8 dat8A[BUFFER_SIZE];
 uint8 dat8B[BUFFER_SIZE];
 uint32 _dat;
-uint32 _dat32;
+uint32 _dat32 __attribute__ ((section(".ram2")));
 uint8 _dat8;
 
 void setup_DMA1(void);
@@ -78,8 +78,8 @@ void isr_2_Interrupt_InterruptCallback(void)
     if( dat_idx < BUFFER_SIZE) 
     {
         dat[dat_idx]= ShiftReg_1_ReadData();
-        dat2[dat_idx]= ShiftReg_2_ReadData();
-        dat3[dat_idx++]= ShiftReg_4_ReadData();
+        //dat2[dat_idx]= ShiftReg_2_ReadData();
+        //dat3[dat_idx++]= ShiftReg_4_ReadData();
     }
     else 
     {
@@ -252,7 +252,6 @@ void shift_dma_sim2(void)
 {
     char str[64];
     uint16 i=0;
-    uint16 _tmp1, _tmp2;
     
     for( i=0; i<BUFFER_SIZE; i++) dat32[i]=i;
     
@@ -296,7 +295,6 @@ void shift_dma_sim3(void)
 {
     char str[64];
     uint16 i=0;
-    uint16 _tmp1, _tmp2;
     
     for( i=0; i<BUFFER_SIZE; i++) dat32A[i]=i;
     
@@ -331,15 +329,6 @@ void shift_dma_sim3(void)
         
         CyDelay(2000);
         
-//        UART_1_PutString("------------------\n");
-//        for( i=0; i<BUFFER_SIZE; i++)
-//        { 
-//            _tmp1 = ShiftReg_1_ReadRegValue();
-//            _tmp2 = ShiftReg_4_ReadRegValue();
-//            sprintf( str, "REG:%04x:%04x\n", _tmp1, _tmp2);
-//            UART_1_PutString(str);
-//            CyDelay(500);
-//        }
     
     }
 }
@@ -361,21 +350,22 @@ int main()
 //    setup_DMA5();
     
     setup_DMA_SR1();
-    
+    CtrlFreqResetSelect_Write(0u);  //0u:SE0_IDLE, 1u:ZERO
     
     CyGlobalIntEnable; /* Enable global interrupts. */
 
     /* Place your initialization/startup code here (e.g. MyInst_Start()) */
 
 //    isr_1_Start();
+    SyncCounter_Start();
     Vreg3v3_1_Start();
     Opamp_1_Start();
     UART_1_Start();
     ShiftReg_1_Start();
     //Counter_1_Start();
-    ShiftReg_2_Start();
+    //ShiftReg_2_Start();
     //ShiftReg_3_Start();
-    ShiftReg_4_Start();
+    //ShiftReg_4_Start();
     
     CyDelay(500u); 
     
@@ -532,30 +522,30 @@ void setup_DMA4()
 }
 
 //Read 16bit Data
-void setup_DMA5()
-{
-    /* Defines for DMA_5 */
-#define DMA_5_BYTES_PER_BURST 2
-#define DMA_5_REQUEST_PER_BURST 1
-#define DMA_5_SRC_BASE (CYDEV_PERIPH_BASE)
-#define DMA_5_DST_BASE (CYREG_SRAM_DATA_MBASE)
-
-    /* Variable declarations for DMA_5 */
-    /* Move these variable declarations to the top of the function */
-    uint8 DMA_5_Chan;
-    uint8 DMA_5_TD[1];
-
-    /* DMA Configuration for DMA_5 */
-    DMA_5_Chan = DMA_5_DmaInitialize(DMA_5_BYTES_PER_BURST, DMA_5_REQUEST_PER_BURST, 
-        HI16(DMA_5_SRC_BASE), HI16(DMA_5_DST_BASE));
-    DMA_5_TD[0] = CyDmaTdAllocate();
-    CyDmaTdSetConfiguration(DMA_5_TD[0], 32, DMA_5_TD[0], TD_INC_DST_ADR);
-    CyDmaTdSetAddress(DMA_5_TD[0], LO16((uint32)ShiftReg_4_OUT_FIFO_VAL_LSB_PTR), LO16((uint32)dat16A));
-    //CyDmaTdSetAddress(DMA_5_TD[0], LO16((uint32)ShiftReg_4_SHIFT_REG_CAPTURE_PTR), LO16((uint32)dat16A));
-    CyDmaChSetInitialTd(DMA_5_Chan, DMA_5_TD[0]);
-    CyDmaChEnable(DMA_5_Chan, 1);
-
-}
+//void setup_DMA5()
+//{
+//    /* Defines for DMA_5 */
+//#define DMA_5_BYTES_PER_BURST 2
+//#define DMA_5_REQUEST_PER_BURST 1
+//#define DMA_5_SRC_BASE (CYDEV_PERIPH_BASE)
+//#define DMA_5_DST_BASE (CYREG_SRAM_DATA_MBASE)
+//
+//    /* Variable declarations for DMA_5 */
+//    /* Move these variable declarations to the top of the function */
+//    uint8 DMA_5_Chan;
+//    uint8 DMA_5_TD[1];
+//
+//    /* DMA Configuration for DMA_5 */
+//    DMA_5_Chan = DMA_5_DmaInitialize(DMA_5_BYTES_PER_BURST, DMA_5_REQUEST_PER_BURST, 
+//        HI16(DMA_5_SRC_BASE), HI16(DMA_5_DST_BASE));
+//    DMA_5_TD[0] = CyDmaTdAllocate();
+//    CyDmaTdSetConfiguration(DMA_5_TD[0], 32, DMA_5_TD[0], TD_INC_DST_ADR);
+//    CyDmaTdSetAddress(DMA_5_TD[0], LO16((uint32)ShiftReg_4_OUT_FIFO_VAL_LSB_PTR), LO16((uint32)dat16A));
+//    //CyDmaTdSetAddress(DMA_5_TD[0], LO16((uint32)ShiftReg_4_SHIFT_REG_CAPTURE_PTR), LO16((uint32)dat16A));
+//    CyDmaChSetInitialTd(DMA_5_Chan, DMA_5_TD[0]);
+//    CyDmaChEnable(DMA_5_Chan, 1);
+//
+//}
 
 void setup_DMA_SR1()
 {
