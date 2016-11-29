@@ -40,8 +40,10 @@ void shift_dma_sim3(void)
 {
     char str[64];
     uint16 i=0;
+    uint32 _dat;
     
-    for( i=0; i<BUFFER_SIZE; i++) dat32A[i]=i;
+    for( i=0; i<BUFFER_SIZE; i++) dat32A[i]=i;    
+    for( i=0; i<BUFFER_SIZE; i++) dat32B[i]=i;
     
     UART_1_PutString("\n----- Start ShiftReg Simulation 32bit ------\n");
     CyDelay(500);
@@ -53,16 +55,40 @@ void shift_dma_sim3(void)
     UART_1_PutString(str);
     CyDelay(2000);
 
-    DMA_SR1A_DmaRelease();
-    DMA_SR1B_DmaRelease();
+    //DMA_SR1A_DmaRelease();
+    //DMA_SR1B_DmaRelease();
+            
+//    while(1)
+//    {
+//        _dat= Status_Reg_1_Read();
+//        
+//        if( _dat!=0xff)
+//        {
+//        sprintf( str,"SR:%d\n", _dat);
+//        UART_1_PutString( str);
+//        CyDelay(1000);
+//        }
+//    
+//        sprintf( str,"DpDm:%d\n",Status_Reg_5_Read());
+//        UART_1_PutString( str);
+//        CyDelay(1000);
+//
+//    }
+    
     
     while(1)
     {
         UART_1_PutString("\n----- dat32A ------\n");
     
+        
+        
         for( i=0; i<BUFFER_SIZE; i++)
         {   
-            sprintf( str, "~:dat32[%2d] - %08lx\n", i, dat32A[i]);
+            _dat = dat32A[i];
+            
+           // if( _dat == 0xffffffff) continue;
+            
+            sprintf( str, "~:dat32[%2d] - %08lx\n", i, _dat);
             UART_1_PutString(str);
             CyDelay(500);                  
         }
@@ -74,7 +100,10 @@ void shift_dma_sim3(void)
     
         for( i=0; i<BUFFER_SIZE; i++)
         {   
-            sprintf( str, "~:dat32[%2d] - %08lx\n", i, dat32B[i]);
+             _dat = dat32B[i];
+            
+            //if( _dat == 0xffffffff) continue;
+            sprintf( str, "~:dat32[%2d] - %08lx\n", i, _dat);
             UART_1_PutString(str);
             CyDelay(500);                  
         }
@@ -93,11 +122,15 @@ int main()
     
     setup_DMA_SR1A();
     setup_DMA_SR1B();
-     
+
+        
+    //DpDm_Write(00u);
+
     CyGlobalIntEnable; /* Enable global interrupts. */
 
     /* Place your initialization/startup code here (e.g. MyInst_Start()) */
 
+    ShiftReg_1_Start();
     SyncCounter_Start();
     Vreg3v3_1_Start();
     Opamp_1_Start();
@@ -147,7 +180,7 @@ int main()
 void setup_DMA_SR1A()
 {
     /* Defines for DMA_SR1A */
-#define DMA_SR1A_BYTES_PER_BURST 1
+#define DMA_SR1A_BYTES_PER_BURST 4
 #define DMA_SR1A_REQUEST_PER_BURST 0
 #define DMA_SR1A_SRC_BASE (CYDEV_PERIPH_BASE)
 #define DMA_SR1A_DST_BASE (CYREG_SRAM_DATA_MBASE)
@@ -155,7 +188,7 @@ void setup_DMA_SR1A()
     /* Variable declarations for DMA_SR1A */
     /* Move these variable declarations to the top of the function */
     uint8 DMA_SR1A_Chan;
-    uint8 DMA_SR1A_TD[1];
+    uint8 DMA_SR1A_TD[2];
 
     /* Variable declarations for DMA_SR2A */
     /* Move these variable declarations to the top of the function */
@@ -165,9 +198,17 @@ void setup_DMA_SR1A()
     /* DMA Configuration for DMA_SR1A */
     DMA_SR1A_Chan = DMA_SR1A_DmaInitialize(DMA_SR1A_BYTES_PER_BURST, DMA_SR1A_REQUEST_PER_BURST, 
         HI16(DMA_SR1A_SRC_BASE), HI16(DMA_SR1A_DST_BASE));
+    
+    /* DMA Transaction Descriptor */
     DMA_SR1A_TD[0] = CyDmaTdAllocate();
-    CyDmaTdSetConfiguration(DMA_SR1A_TD[0], 4, DMA_SR1A_TD[0], DMA_SR1A__TD_TERMOUT_EN | TD_INC_SRC_ADR | TD_INC_DST_ADR);
-    CyDmaTdSetAddress(DMA_SR1A_TD[0], LO16((uint32)Status_Reg_1_Status_PTR), LO16((uint32)&_dat32A));
+    DMA_SR1A_TD[1] = CyDmaTdAllocate();
+
+    CyDmaTdSetConfiguration(DMA_SR1A_TD[0], 2, DMA_SR1A_TD[1], CY_DMA_TD_AUTO_EXEC_NEXT);
+    CyDmaTdSetAddress(DMA_SR1A_TD[0], LO16((uint32)Status_Reg_1_sts_sts_reg__16BIT_STATUS_REG), LO16((uint32)&_dat32A));
+    
+    CyDmaTdSetConfiguration(DMA_SR1A_TD[1], 2, DMA_SR1A_TD[0], DMA_SR1A__TD_TERMOUT_EN);
+    CyDmaTdSetAddress(DMA_SR1A_TD[1], LO16((uint32)Status_Reg_3_sts_sts_reg__16BIT_STATUS_REG), LO16((uint32)&_dat32A+2));
+    
     CyDmaChSetInitialTd(DMA_SR1A_Chan, DMA_SR1A_TD[0]);
     CyDmaChEnable(DMA_SR1A_Chan, 1);
     
@@ -182,6 +223,7 @@ void setup_DMA_SR1A()
         HI16(DMA_SR2A_SRC_BASE), HI16(DMA_SR2A_DST_BASE));
     DMA_SR2A_TD[0] = CyDmaTdAllocate();
     CyDmaTdSetConfiguration(DMA_SR2A_TD[0], BUFFER_SIZE<<2u, DMA_SR2A_TD[0], DMA_SR2A__TD_TERMOUT_EN |TD_INC_DST_ADR);
+    //CyDmaTdSetConfiguration(DMA_SR2A_TD[0], 1<<2u, DMA_SR2A_TD[0], DMA_SR2A__TD_TERMOUT_EN |TD_INC_DST_ADR);
     CyDmaTdSetAddress(DMA_SR2A_TD[0], LO16((uint32)&_dat32A), LO16((uint32)dat32A));
     CyDmaChSetInitialTd(DMA_SR2A_Chan, DMA_SR2A_TD[0]);
     CyDmaChEnable(DMA_SR2A_Chan, 1);
@@ -211,7 +253,8 @@ void setup_DMA_SR1B()
         HI16(DMA_SR1B_SRC_BASE), HI16(DMA_SR1B_DST_BASE));
     DMA_SR1B_TD[0] = CyDmaTdAllocate();
     CyDmaTdSetConfiguration(DMA_SR1B_TD[0], 4, DMA_SR1B_TD[0], DMA_SR1B__TD_TERMOUT_EN | TD_INC_SRC_ADR | TD_INC_DST_ADR);
-    CyDmaTdSetAddress(DMA_SR1B_TD[0], LO16((uint32)Status_Reg_1_Status_PTR), LO16((uint32)&_dat32B));
+    //CyDmaTdSetAddress(DMA_SR1B_TD[0], LO16((uint32)Status_Reg_1_sts_sts_reg__STATUS_REG), LO16((uint32)&_dat32B));
+    CyDmaTdSetAddress(DMA_SR1B_TD[0], LO16((uint32)ShiftReg_1_OUT_FIFO_VAL_LSB_PTR), LO16((uint32)&_dat32B));
     CyDmaChSetInitialTd(DMA_SR1B_Chan, DMA_SR1B_TD[0]);
     CyDmaChEnable(DMA_SR1B_Chan, 1);
     
