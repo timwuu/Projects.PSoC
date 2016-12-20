@@ -2,6 +2,14 @@ USBSIE/SIE01.cydsn/codegentemp
 USBSIE/SIE01.cydsn/CortexM3
 USBSIE/SIE01.cydsn/Export
 USBSIE/SIE01.cydsn/Generated_Source
+PICkit X/Design01.cydsn/codegentemp
+PICkit X/Design01.cydsn/CortexM3
+PICkit X/Design01.cydsn/Export
+PICkit X/Design01.cydsn/Generated_Source
+PICkit X/Design02.cydsn/codegentemp
+PICkit X/Design02.cydsn/CortexM3
+PICkit X/Design02.cydsn/Export
+PICkit X/Design02.cydsn/Generated_Source
 *.txt
 *.Tim
 *.rpt
